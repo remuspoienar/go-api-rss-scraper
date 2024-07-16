@@ -30,7 +30,11 @@ func main() {
 	mux.HandleFunc("GET /v1/healthz", config.HealthCheck)
 	mux.HandleFunc("GET /v1/err", config.Err)
 
+	mux.HandleFunc("GET /v1/user", config.RequireAuth(config.GetUser))
 	mux.HandleFunc("POST /v1/users", config.CreateUser)
+
+	mux.HandleFunc("GET /v1/feeds", config.GetFeeds)
+	mux.HandleFunc("POST /v1/feeds", config.RequireAuth(config.CreateFeed))
 
 	addr := fmt.Sprintf(":%s", os.Getenv("PORT"))
 	fmt.Println("Server running on", addr)

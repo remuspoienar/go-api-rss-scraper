@@ -35,3 +35,8 @@ func (c *Config) CreateUser(w http.ResponseWriter, r *http.Request) {
 	sendJson(w, 201, user)
 
 }
+
+func (c *Config) GetUser(w http.ResponseWriter, r *http.Request, user *database.User) {
+	sendJson(w, 201, *user)
+
+}
