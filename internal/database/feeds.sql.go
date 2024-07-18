@@ -13,9 +13,9 @@ import (
 )
 
 const createFeed = `-- name: CreateFeed :one
-insert into feeds(id, created_at, updated_at, url, name, user_id)
-values ($1, $2, $3, $4, $5, $6)
-returning id, created_at, updated_at, url, name, user_id
+insert into feeds(id, created_at, updated_at, url, name, user_id, last_fetched_at)
+values ($1, $2, $3, $4, $5, $6, NULL)
+returning id, created_at, updated_at, url, name, user_id, last_fetched_at
 `
 
 type CreateFeedParams struct {
@@ -44,6 +44,7 @@ func (q *Queries) CreateFeed(ctx context.Context, arg *CreateFeedParams) (*Feed,
 		&i.Url,
 		&i.Name,
 		&i.UserID,
+		&i.LastFetchedAt,
 	)
 	return &i, err
 }
@@ -87,7 +88,7 @@ func (q *Queries) GetFeedFollow(ctx context.Context, arg *GetFeedFollowParams) (
 }
 
 const getFeeds = `-- name: GetFeeds :many
-select id, created_at, updated_at, url, name, user_id
+select id, created_at, updated_at, url, name, user_id, last_fetched_at
 from feeds
 `
 
@@ -107,6 +108,7 @@ func (q *Queries) GetFeeds(ctx context.Context) ([]*Feed, error) {
 			&i.Url,
 			&i.Name,
 			&i.UserID,
+			&i.LastFetchedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -119,6 +121,56 @@ func (q *Queries) GetFeeds(ctx context.Context) ([]*Feed, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const getNextFeedsToFetch = `-- name: GetNextFeedsToFetch :many
+select id, created_at, updated_at, url, name, user_id, last_fetched_at
+from feeds
+order by last_fetched_at nulls first
+limit $1
+`
+
+func (q *Queries) GetNextFeedsToFetch(ctx context.Context, limit int32) ([]*Feed, error) {
+	rows, err := q.db.QueryContext(ctx, getNextFeedsToFetch, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*Feed
+	for rows.Next() {
+		var i Feed
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Url,
+			&i.Name,
+			&i.UserID,
+			&i.LastFetchedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const markFeedFetched = `-- name: MarkFeedFetched :exec
+update feeds
+set last_fetched_at = current_timestamp,
+    updated_at      = current_timestamp
+where id = $1
+`
+
+func (q *Queries) MarkFeedFetched(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, markFeedFetched, id)
+	return err
 }
 
 const unfollowFeed = `-- name: UnfollowFeed :exec
