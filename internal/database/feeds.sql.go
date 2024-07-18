@@ -48,6 +48,44 @@ func (q *Queries) CreateFeed(ctx context.Context, arg *CreateFeedParams) (*Feed,
 	return &i, err
 }
 
+const followFeed = `-- name: FollowFeed :one
+insert into feed_follows(feed_id, user_id, followed_at)
+values ($1, $2, $3)
+returning feed_id, user_id, followed_at
+`
+
+type FollowFeedParams struct {
+	FeedID     uuid.UUID `json:"feed_id"`
+	UserID     uuid.UUID `json:"user_id"`
+	FollowedAt time.Time `json:"followed_at"`
+}
+
+func (q *Queries) FollowFeed(ctx context.Context, arg *FollowFeedParams) (*FeedFollow, error) {
+	row := q.db.QueryRowContext(ctx, followFeed, arg.FeedID, arg.UserID, arg.FollowedAt)
+	var i FeedFollow
+	err := row.Scan(&i.FeedID, &i.UserID, &i.FollowedAt)
+	return &i, err
+}
+
+const getFeedFollow = `-- name: GetFeedFollow :one
+select feed_id, user_id, followed_at
+from feed_follows
+where feed_id = $1
+  AND user_id = $2
+`
+
+type GetFeedFollowParams struct {
+	FeedID uuid.UUID `json:"feed_id"`
+	UserID uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) GetFeedFollow(ctx context.Context, arg *GetFeedFollowParams) (*FeedFollow, error) {
+	row := q.db.QueryRowContext(ctx, getFeedFollow, arg.FeedID, arg.UserID)
+	var i FeedFollow
+	err := row.Scan(&i.FeedID, &i.UserID, &i.FollowedAt)
+	return &i, err
+}
+
 const getFeeds = `-- name: GetFeeds :many
 select id, created_at, updated_at, url, name, user_id
 from feeds
@@ -81,4 +119,21 @@ func (q *Queries) GetFeeds(ctx context.Context) ([]*Feed, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const unfollowFeed = `-- name: UnfollowFeed :exec
+delete
+from feed_follows
+where feed_id = $1
+  AND user_id = $2
+`
+
+type UnfollowFeedParams struct {
+	FeedID uuid.UUID `json:"feed_id"`
+	UserID uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) UnfollowFeed(ctx context.Context, arg *UnfollowFeedParams) error {
+	_, err := q.db.ExecContext(ctx, unfollowFeed, arg.FeedID, arg.UserID)
+	return err
 }

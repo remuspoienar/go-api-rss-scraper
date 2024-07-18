@@ -35,6 +35,8 @@ func main() {
 
 	mux.HandleFunc("GET /v1/feeds", config.GetFeeds)
 	mux.HandleFunc("POST /v1/feeds", config.RequireAuth(config.CreateFeed))
+	mux.HandleFunc("POST /v1/feeds/{feedId}/follow", config.RequireAuth(config.FollowFeed))
+	mux.HandleFunc("DELETE /v1/feeds/{feedId}/follow", config.RequireAuth(config.UnfollowFeed))
 
 	addr := fmt.Sprintf(":%s", os.Getenv("PORT"))
 	fmt.Println("Server running on", addr)

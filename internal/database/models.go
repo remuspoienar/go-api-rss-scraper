@@ -19,6 +19,12 @@ type Feed struct {
 	UserID    uuid.UUID `json:"user_id"`
 }
 
+type FeedFollow struct {
+	FeedID     uuid.UUID `json:"feed_id"`
+	UserID     uuid.UUID `json:"user_id"`
+	FollowedAt time.Time `json:"followed_at"`
+}
+
 type User struct {
 	ID        uuid.UUID `json:"id"`
 	Name      string    `json:"name"`
