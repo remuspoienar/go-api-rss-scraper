@@ -34,7 +34,6 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /v1/healthz", config.HealthCheck)
-	mux.HandleFunc("GET /v1/err", config.Err)
 
 	mux.HandleFunc("GET /v1/user", config.RequireAuth(config.GetUser))
 	mux.HandleFunc("POST /v1/users", config.CreateUser)

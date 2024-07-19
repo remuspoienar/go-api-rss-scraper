@@ -14,7 +14,7 @@ func ScheduledFetchPosts(c *api.Config) {
 	for {
 		select {
 		case <-ticker.C:
-			fmt.Print("FETCHING ------------>\n")
+			fmt.Printf("%s FETCHING ------------>\n", time.Now().UTC())
 			feeds, _ := c.DB.GetNextFeedsToFetch(context.Background(), int32(c.FeedFetchConcurrency))
 			wg := sync.WaitGroup{}
 			for _, feed := range feeds {
@@ -27,7 +27,7 @@ func ScheduledFetchPosts(c *api.Config) {
 			}
 
 			wg.Wait()
-			fmt.Print("FINISHED <------------\n\n")
+			fmt.Printf("%s FINISHED <------------\n\n", time.Now().UTC())
 		}
 	}
 }

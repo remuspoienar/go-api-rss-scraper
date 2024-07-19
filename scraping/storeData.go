@@ -5,6 +5,8 @@ import (
 	"blogator/internal"
 	"blogator/internal/database"
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"time"
@@ -23,10 +25,12 @@ func StoreData(c *api.Config, feed *database.Feed, posts *[]Post) {
 	)
 	for _, post := range *posts {
 		existingPost, err := c.DB.GetPostByUrl(context.Background(), post.Link)
-		if existingPost != nil {
+
+		if !errors.Is(err, sql.ErrNoRows) && existingPost != nil {
 			existingCount++
 			continue
 		}
+
 		err = c.DB.CreatePost(context.Background(), &database.CreatePostParams{
 			ID:          uuid.New(),
 			CreatedAt:   time.Now().UTC(),
